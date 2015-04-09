@@ -1022,7 +1022,9 @@ class WindowBase(EventDispatcher):
                 The Motion Event currently dispatched.
         '''
         if me.is_touch:
-            w, h = self._get_effective_size()
+            w, h = self.system_size
+            if platform == 'ios' or self._density != 1:
+                w, h = self.size
             me.scale_for_screen(w, h, rotation=self._rotation,
                                 smode=self.softinput_mode,
                                 kheight=self.keyboard_height)
