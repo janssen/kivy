@@ -343,7 +343,7 @@ class WindowBase(EventDispatcher):
 
     .. versionadded:: 1.9.1
 
-    :attr:`minimum_width` is a :class:`~kivy.properties.NumericProperty`,
+    :attr:`minimum_width` is a :class:`~kivy.properties.NumericProperty` and
     defaults to 0.
     '''
 
@@ -352,7 +352,7 @@ class WindowBase(EventDispatcher):
 
     .. versionadded:: 1.9.1
 
-    :attr:`minimum_height` is a :class:`~kivy.properties.NumericProperty`,
+    :attr:`minimum_height` is a :class:`~kivy.properties.NumericProperty` and
     defaults to 0.
     '''
 
@@ -457,8 +457,8 @@ class WindowBase(EventDispatcher):
     softinput_mode = OptionProperty('', options=(
         '', 'below_target', 'pan', 'scale', 'resize'))
     '''This specifies the behavior of window contents on display of the soft
-    keyboard on mobile platform. It can be one of '', 'pan', 'scale', 'resize'
-    or 'below_target'. Their effects are listed below.
+    keyboard on mobile platforms. It can be one of '', 'pan', 'scale',
+    'resize' or 'below_target'. Their effects are listed below.
 
     +----------------+-------------------------------------------------------+
     | Value          | Effect                                                |
@@ -478,7 +478,8 @@ class WindowBase(EventDispatcher):
     |                | the soft keyboard.                                    |
     +----------------+-------------------------------------------------------+
 
-    :attr:`softinput_mode` is a :class:`OptionProperty` defaults to None.
+    :attr:`softinput_mode` is an :class:`~kivy.properties.OptionProperty` and
+    defaults to `None`.
 
     .. versionadded:: 1.9.0
 
@@ -496,6 +497,8 @@ class WindowBase(EventDispatcher):
         return 0
 
     def _get_android_kheight(self):
+        if USE_SDL2:  # Placeholder until the SDL2 bootstrap supports this
+            return 0
         global android
         if not android:
             import android
@@ -516,8 +519,8 @@ class WindowBase(EventDispatcher):
 
     .. versionadded:: 1.9.0
 
-    :attr:`keyboard_height` is a read-only :class:`AliasProperty`,
-    defaults to 0.
+    :attr:`keyboard_height` is a read-only
+    :class:`~kivy.propertries.AliasProperty` and defaults to 0.
     '''
 
     def _set_system_size(self, size):
@@ -552,13 +555,17 @@ class WindowBase(EventDispatcher):
 
     .. versionadded:: 1.9.0
 
-    :attr:`borderless` is a :class:`BooleanProperty`, defaults to False.
+    :attr:`borderless` is a :class:`~kivy.properties.BooleanProperty` and
+    defaults to False.
     '''
 
     fullscreen = OptionProperty(False, options=(True, False, 'auto', 'fake'))
     '''This property sets the fullscreen mode of the window. Available options
-    are: True, False, 'auto', 'fake'. Check the :mod:`~kivy.config`
-    documentation for a more detailed explanation on the values.
+    are: True, False, 'auto' and 'fake'. Check the :mod:`~kivy.config`
+    documentation for more detailed explanations on these values.
+
+    fullscreen is an :class:`~kivy.properties.OptionProperty` and defaults to
+    `False`.
 
     .. versionadded:: 1.2.0
 
@@ -624,7 +631,7 @@ class WindowBase(EventDispatcher):
         if 'fullscreen' not in kwargs:
             fullscreen = Config.get('graphics', 'fullscreen')
             if fullscreen not in ('auto', 'fake'):
-                fullscreen = fullscreen.lower() in ('true', '1', 'yes', 'yup')
+                fullscreen = fullscreen.lower() in ('true', '1', 'yes')
             kwargs['fullscreen'] = fullscreen
         if 'width' not in kwargs:
             kwargs['width'] = Config.getint('graphics', 'width')
@@ -1052,7 +1059,7 @@ class WindowBase(EventDispatcher):
         if smode == 'pan':
             y = kheight
         elif smode == 'below_target':
-            y = 0 if kheight < targettop else (kheight - targettop) + dp(9)
+            y = 0 if kheight < targettop else (kheight - targettop)
         if smode == 'scale':
             _h -= kheight
 
@@ -1252,7 +1259,7 @@ class WindowBase(EventDispatcher):
         .. warning::
 
             This event currently works with sdl2 window provider, on pygame
-            window provider and MacOSX with a patched version of pygame.
+            window provider and OS X with a patched version of pygame.
             This event is left in place for further evolution
             (ios, android etc.)
 
@@ -1348,7 +1355,7 @@ class WindowBase(EventDispatcher):
     def set_vkeyboard_class(self, cls):
         '''.. versionadded:: 1.0.8
 
-        Set the VKeyboard class to use. If set to None, it will use the
+        Set the VKeyboard class to use. If set to `None`, it will use the
         :class:`kivy.uix.vkeyboard.VKeyboard`.
         '''
         self._vkeyboard_cls = cls

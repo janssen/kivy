@@ -5,12 +5,12 @@ matrix:
   include:
     - python: 2.7
       env: RUN=unit
-    - python: 3.4
+    - python: 3.5
       env:
         - RUN=unit COVERALLS=true
-    - python: 3.4
+    - python: 3.5
       env: RUN=pep8
-    - python: 3.4
+    - python: 3.5
       env: RUN=docs
 
 install:
@@ -48,6 +48,14 @@ script:
     fi;
   - if [ "${RUN}" == "docs" ]; then
       make html;
+    fi;
+
+after_success:
+  - if [ "${RUN}" == "docs" ] && [ "${TRAVIS_PULL_REQUEST}" == "false" ] && [ "${TRAVIS_BRANCH}" == "master" ]; then
+      openssl aes-256-cbc -K $encrypted_675f1a0c317c_key -iv $encrypted_675f1a0c317c_iv -in ./kivy/tools/travis/id_rsa.enc -out ~/.ssh/id_rsa -d;
+      chmod 600 ~/.ssh/id_rsa;
+      echo -e "Host kivy.org\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config;
+      rsync --delete --force -r -e ssh ./doc/build/html/ kivy@kivy.org:~/kivy.org/docs/api-trunk/;
     fi;
 
 notifications:

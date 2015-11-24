@@ -8,9 +8,7 @@ Text Input
 .. image:: images/textinput-mono.jpg
 .. image:: images/textinput-multi.jpg
 
-The :class:`TextInput` widget provides a box for editable plain text. More
-advanced formatting is available via the
-:attr:`~kivy.core.text.markup` property.
+The :class:`TextInput` widget provides a box for editable plain text.
 
 Unicode, multiline, cursor navigation, selection and clipboard features
 are supported.
@@ -135,6 +133,10 @@ Control + a     Select all the content
 Control + z     undo
 Control + r     redo
 =============== ========================================================
+
+.. note::
+    To enable Emacs-style keyboard shortcuts, you can use
+    :class:`~kivy.uix.behaviors.emacs.EmacsBehavior`.
 
 '''
 
@@ -2956,6 +2958,14 @@ class TextInput(FocusBehavior, Widget):
 
     :attr:`minimum_height` is a readonly
     :class:`~kivy.properties.AliasProperty`.
+
+    .. warning::
+        :attr:`minimum_width` is calculated based on :attr:`width` therefore
+        code like this will lead to an infinite loop::
+
+            <FancyTextInput>:
+                height: self.minimum_height
+                width: self.height
     '''
 
     line_spacing = NumericProperty(0)
