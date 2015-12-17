@@ -375,10 +375,11 @@ if platform not in ('ios', 'android') and (c_options['use_gstreamer']
             c_options['use_gstreamer'] = True
 
 
-# detect SDL2, only on desktop and iOS
+# detect SDL2, only on desktop and iOS, or android if explicitly enabled
 # works if we forced the options or in autodetection
 sdl2_flags = {}
-if platform not in ('android',) and c_options['use_sdl2'] in (None, True):
+if c_options['use_sdl2'] or (
+        platform not in ('android',) and c_options['use_sdl2'] is None):
 
     if c_options['use_osx_frameworks'] and platform == 'darwin':
         # check the existence of frameworks
@@ -484,7 +485,7 @@ def determine_base_flags():
             import platform as _platform
             xcode_dev = getoutput('xcode-select -p').splitlines()[0]
             sdk_mac_ver = '.'.join(_platform.mac_ver()[0].split('.')[:2])
-            print('Xcode detected at {}, and using MacOSX{} sdk'.format(
+            print('Xcode detected at {}, and using OS X{} sdk'.format(
                     xcode_dev, sdk_mac_ver))
             sysroot = join(
                     xcode_dev.decode('utf-8'),
@@ -817,7 +818,8 @@ ext_modules = get_extensions_from_sources(sources)
 data_file_prefix = 'share/kivy-'
 examples = {}
 examples_allowed_ext = ('readme', 'py', 'wav', 'png', 'jpg', 'svg', 'json',
-                        'avi', 'gif', 'txt', 'ttf', 'obj', 'mtl', 'kv', 'mpg')
+                        'avi', 'gif', 'txt', 'ttf', 'obj', 'mtl', 'kv', 'mpg',
+                        'glsl')
 for root, subFolders, files in walk('examples'):
     for fn in files:
         ext = fn.split('.')[-1].lower()
@@ -885,7 +887,8 @@ setup(
         'kivy.tools.highlight',
         'kivy.extras',
         'kivy.tools.extensions',
-        'kivy.uix', ],
+        'kivy.uix',
+        'kivy.uix.behaviors', ],
     package_dir={'kivy': 'kivy'},
     package_data={'kivy': [
         '*.pxd',
@@ -943,6 +946,7 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Topic :: Artistic Software',
         'Topic :: Games/Entertainment',
         'Topic :: Multimedia :: Graphics :: 3D Rendering',
@@ -957,4 +961,4 @@ setup(
         'Topic :: Software Development :: User Interfaces'],
     dependency_links=[
         'https://github.com/kivy-garden/garden/archive/master.zip'],
-    install_requires=['Kivy-Garden==0.1.1'])
+    install_requires=['cython>=' + MIN_CYTHON_STRING, 'Kivy-Garden>=0.1.4'])

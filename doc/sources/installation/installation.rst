@@ -19,8 +19,8 @@ or 3.x (3.3 <= x)
 interpreter. If you want to enable features like windowing (i.e. open a Window),
 audio/video playback or spelling correction, additional dependencies must
 be available. For these, we recommend `Pygame <http://pygame.org>`_, `Gst-Python
-<http://www.gstreamer.net/modules/gst-python.html>`_ and `Enchant
-<http://www.rfk.id.au/software/pyenchant/>`_, respectively.
+<http://www.gstreamer.net/modules/gst-python.html>`_ and `PyEnchant
+<https://pythonhosted.org/pyenchant/>`_, respectively.
 
 +--------------------------------------------------------------------------------------------------------------------------+
 | NOTE: Currently, packaging only works with Python 2.7. We are working on Python 3.3+ support, but for now if you plan to |
@@ -32,7 +32,7 @@ Other optional libraries (mutually independent) are:
     * `OpenCV 2.0 <http://sourceforge.net/projects/opencvlibrary/>`_ -- Camera input.
     * `PIL <http://www.pythonware.com/products/pil/index.htm>`_ -- Image and text display.
     * `PyCairo <http://www.cairographics.org/pycairo/>`_ -- Text display.
-    * `PyEnchant <http://www.rfk.id.au/software/pyenchant/>`_ -- Spelling correction.
+    * `PyEnchant <https://pythonhosted.org/pyenchant/>`_ -- Spelling correction.
     * `PyGST <http://gstreamer.freedesktop.org/ + http://pygstdocs.berlios.de/>`_ -- Audio/video playback and camera input.
 
 
@@ -55,11 +55,11 @@ Please refer to the installation instructions for your specific platform:
     :maxdepth: 2
 
     installation-windows
-    installation-macosx
+    installation-osx
     installation-linux
     installation-android
     installation-rpi
-    troubleshooting-macosx
+    troubleshooting-osx
 
 
 .. _installation_devel:
@@ -91,7 +91,7 @@ that will install all necessary packages::
       build-essential libgl1-mesa-dev-lts-quantal libgles2-mesa-dev-lts-quantal\ 
       python-pip
 
-For older versions of Ubuntu, this one should work::
+For Ubuntu 15.04 and versions older than 12.04, this one should work::
 
     $ sudo apt-get install python-setuptools python-pygame python-opengl \
       python-gst0.10 python-enchant gstreamer0.10-plugins-good python-dev \
@@ -104,15 +104,12 @@ supported version from pypi:
 
     $ sudo pip install --upgrade |cython_install|
 
-Mac OS X
-++++++++
+OS X
+++++
 
-You will need to install at least the following:
+Install the requirements using `homebrew <http://brew.sh>`_::
 
-* PyGame - we recommend installing from a binary packaged for your version
-  of Mac OS X. Download it from http://www.pygame.org/download.shtml
-
-If you run into problems, please read :ref:`troubleshooting-macosx`.
+     $ brew install sdl2 sdl2_image sdl2_ttf sdl2_mixer gstreamer
 
 .. _dev-install:
 
@@ -122,11 +119,13 @@ Installing Kivy for Development
 Now that you've installed all the required dependencies, it's time to
 download and compile a development version of Kivy::
 
-    $ # Download Kivy from GitHub
+Download Kivy from GitHub::
+
     $ git clone git://github.com/kivy/kivy.git
     $ cd kivy
 
-    $ # Compile:
+Compile::
+
     $ python setup.py build_ext --inplace -f
 
 If you have the ``make`` command available, you can also use the
@@ -167,11 +166,11 @@ in Kivy, perhaps a test will show this? If not, it might be a good time to write
 one .)
 
 Kivy tests are based on nosetest, which you can install from your package
-manager or using pip :
+manager or using pip::
 
   $ pip install nose
 
-To run the test suite, do :
+To run the test suite, do::
 
   $ make test
 
