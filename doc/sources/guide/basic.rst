@@ -13,7 +13,7 @@ Windows and MacOS X, we provide a portable package that you can just
 unzip and use.
 
 * :ref:`installation_windows`
-* :ref:`installation_macosx`
+* :ref:`installation_osx`
 * :ref:`installation_linux`
 
 If you want to install everything yourself, ensure that you have at
@@ -146,7 +146,7 @@ To run the application, follow the instructions for your operating system:
 
     Mac OS X
         Follow the instructions for
-        :ref:`running a Kivy application on MacOSX <macosx-run-app>`::
+        :ref:`running a Kivy application on OS X <osx-run-app>`::
 
             $ kivy main.py
 
@@ -196,7 +196,7 @@ Lets extend this application a bit, say a simple UserName/Password page.
     if __name__ == '__main__':
         MyApp().run()
 
-At the next line we import a :class:`~kivy.uix.gridlayout.Gridlayout`::
+At line 2 we import a :class:`~kivy.uix.gridlayout.Gridlayout`::
 
     from kivy.uix.gridlayout import GridLayout
 

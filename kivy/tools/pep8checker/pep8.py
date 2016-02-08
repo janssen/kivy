@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # pep8.py - Check Python source code formatting, according to PEP 8
 # Copyright (C) 2006 Johann C. Rocholl <johann@rocholl.net>
 #
@@ -1337,11 +1336,11 @@ class Checker(object):
                     col = offset + pos - part.rfind('\n') + 1
                     if sre.group(0)[0] == '.':
                         self.report_error(line, col,
-                           'E289 Too many spaces after period.  Use only one.',
+                           'E289 Too many spaces after period. Use only one.',
                            check=None)
                     elif sre.group(0)[0] == ',':
                         self.report_error(line, col,
-                           'E288 Too many spaces after comma.  Use only one.',
+                           'E288 Too many spaces after comma. Use only one.',
                            check=None)
                     else:
                         self.report_error(line, col,

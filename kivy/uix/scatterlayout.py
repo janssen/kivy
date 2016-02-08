@@ -65,7 +65,7 @@ class ScatterLayout(Scatter):
         if self.content.size != self.size:
             self.content.size = self.size
         super(ScatterLayout, self).add_widget(self.content)
-        self.bind(size=self.update_size)
+        self.fbind('size', self.update_size)
 
     def update_size(self, instance, size):
         self.content.size = size
@@ -88,10 +88,6 @@ class ScatterPlaneLayout(ScatterPlane):
 
     .. versionadded:: 1.9.0
     '''
-
-    def __init__(self, **kwargs):
-        kwargs.setdefault('auto_bring_to_front', False)
-        super(ScatterPlaneLayout, self).__init__(**kwargs)
 
     def collide_point(self, x, y):
         return True

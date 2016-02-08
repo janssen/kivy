@@ -101,7 +101,7 @@ contains all the children. You can easily traverse the tree by doing::
     for child in root.children:
         print(child)
 
-However, this must be used carefuly. If you intend to modify the children list
+However, this must be used carefully. If you intend to modify the children list
 with one of the methods shown in the previous section, you must use a copy of
 the list like this::
 
@@ -182,7 +182,7 @@ setting position relative to layout position.
 Behaves just like FloatLayout, except children positions are relative to layout
 position, not the screen.
 
-Examine the documentation of the individaul layouts for a more in-depth
+Examine the documentation of the individual layouts for a more in-depth
 understanding.
 
 |size_hint| and |pos_hint|:
@@ -195,7 +195,7 @@ understanding.
 - |AnchorLayout|
 
 |size_hint| is a |ReferenceListProperty| of
-|size_hint_x| and |size_hint_y|. It excepts values from `0` to `1` or `None`
+|size_hint_x| and |size_hint_y|. It accepts values from `0` to `1` or `None`
 and defaults to `(1, 1)`. This signifies that if the widget is in a layout,
 the layout will allocate it as much place as possible in both directions
 (relative to the layouts size).
@@ -256,7 +256,7 @@ will take out of the |size| given to it by the |BoxLayout|. In our example, the
 first |Button| specifies .5 for |size_hint_x|. The space for the widget is
 calculated like so::
 
-    first child's size_hint devided by
+    first child's size_hint divided by
     first child's size_hint + second child's size_hint + ...n(no of children)
     
     .5/(.5+1) = .333...

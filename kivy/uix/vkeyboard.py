@@ -275,7 +275,7 @@ class VKeyboard(Scatter):
     '''Filename of the key background image for use when no touches are active
     on the widget and vkeyboard is disabled.
 
-    ..versionadded:: 1.8.0
+    .. versionadded:: 1.8.0
 
     :attr:`key_disabled_background_normal` a
     :class:`~kivy.properties.StringProperty` and defaults to
@@ -327,24 +327,37 @@ class VKeyboard(Scatter):
 
     def __init__(self, **kwargs):
         # XXX move to style.kv
-        kwargs.setdefault('size_hint', (None, None))
-        kwargs.setdefault('scale_min', .4)
-        kwargs.setdefault('scale_max', 1.6)
-        kwargs.setdefault('size', (700, 200))
-        kwargs.setdefault('docked', False)
-        self._trigger_update_layout_mode = Clock.create_trigger(
+        if 'size_hint' not in kwargs:
+            if 'size_hint_x' not in kwargs:
+                self.size_hint_x = None
+            if 'size_hint_y' not in kwargs:
+                self.size_hint_y = None
+        if 'size' not in kwargs:
+            if 'width' not in kwargs:
+                self.width = 700
+            if 'height' not in kwargs:
+                self.height = 200
+        if 'scale_min' not in kwargs:
+            self.scale_min = .4
+        if 'scale_max' not in kwargs:
+            self.scale_max = 1.6
+        if 'docked' not in kwargs:
+            self.docked = False
+
+        layout_mode = self._trigger_update_layout_mode = Clock.create_trigger(
             self._update_layout_mode)
-        self._trigger_load_layouts = Clock.create_trigger(
+        layouts = self._trigger_load_layouts = Clock.create_trigger(
             self._load_layouts)
-        self._trigger_load_layout = Clock.create_trigger(
+        layout = self._trigger_load_layout = Clock.create_trigger(
             self._load_layout)
-        self.bind(
-            docked=self.setup_mode,
-            have_shift=self._trigger_update_layout_mode,
-            have_capslock=self._trigger_update_layout_mode,
-            have_special=self._trigger_update_layout_mode,
-            layout_path=self._trigger_load_layouts,
-            layout=self._trigger_load_layout)
+        fbind = self.fbind
+
+        fbind('docked', self.setup_mode)
+        fbind('have_shift', layout_mode)
+        fbind('have_capslock', layout_mode)
+        fbind('have_special', layout_mode)
+        fbind('layout_path', layouts)
+        fbind('layout', layout)
         super(VKeyboard, self).__init__(**kwargs)
 
         # load all the layouts found in the layout_path directory
@@ -717,6 +730,8 @@ class VKeyboard(Scatter):
         return True
 
     def process_key_on(self, touch):
+        if not touch:
+            return
         x, y = self.to_local(*touch.pos)
         key = self.get_key_at_pos(x, y)
         if not key:

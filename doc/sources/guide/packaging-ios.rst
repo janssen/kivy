@@ -8,9 +8,11 @@ Create a package for IOS
 .. note::
 
     From the 4th march 2015, the toolchain for iOS has been rewritten. The
-    previous instructions doesn't work anymore. If you still want to use the
-    older version, try the old-toolchain tag in git.
-    The new version supports i386, x86_64, armv7, arm64 = it works on emulator.
+    previous instructions don't work anymore (using `build_all.sh`). We
+    strongly recommend you upgrade to the latest toochain which contains many
+    improvements, including support for i386, x86_64, armv7, arm64 and the
+    iOS emulators. If you must use the older version, try the old-toolchain
+    tag in git.
 
 .. note::
 
@@ -23,14 +25,12 @@ The overall process for creating a package for IOS can be explained in 4 steps:
 #. Create an Xcode project and link your source code
 #. Customize
 
-This process has been tested with Xcode 6.1
-
 Prerequisites
 -------------
 
 You need to install some dependencies, like cython, autotools, etc. We
 encourage you to use `Homebrew <http://mxcl.github.com/homebrew/>`_ to install
-thoses dependencies::
+those dependencies::
 
     brew install autoconf automake libtool pkg-config
     brew link libtool
@@ -51,9 +51,10 @@ Open a terminal, and type::
     $ cd kivy-ios
     $ ./toolchain.py build kivy
 
-Most of the python distribution will be packed into a `python27.zip`. If you
-experience any issues or would like more detail on this process, please refer
-to :ref:`Compiling for IOS <packaging_ios_compile>`.
+Most of the python distribution is packed into `python27.zip`. If you
+experience any issues, please refer to our
+`user group <https://groups.google.com/forum/#!forum/kivy-users>`_ or the
+`kivy-ios project page <https://github.com/kivy/kivy-ios>`_.
 
 .. _Create an Xcode project:
 
@@ -67,15 +68,24 @@ We provide a script that creates an initial Xcode project to start with. In the
 command line below, replace `test` with your project name. It must be a
 name without any spaces or illegal characters::
 
-    $ # ./toolchain.py create /path/to/your/appdir
-    $ ./toolchain.py create /Users/tito/code/kivy/examples/demo/touchtracer
+    $ # ./toolchain.py create <title> <app_directory>
+    $ ./toolchain.py create Touchtracer ~/code/kivy/examples/demo/touchtracer
 
 .. Note::
     You must use a fully qualified path to your application directory.
 
-Now you can open the Xcode project::
+A directory named `<title>-ios` will be created, with an Xcode project in it.
+You can open the Xcode project::
 
     $ open touchtracer-ios/touchtracer.xcodeproj
+
+Then click on `Play`, and enjoy.
+
+.. Note::
+
+    Everytime you press `Play`, your application directory will be synced to
+    the `<title>-ios/YourApp` directory. Don't make changes in the -ios
+    directory directly.
 
 Updating an Xcode project
 -------------------------
@@ -111,9 +121,9 @@ You can customize the build in many ways:
 
 Launch Images are supported. By default, XCode want you to build an `Image Sets
 <https://developer.apple.com/library/ios/recipes/xcode_help-image_catalog-1.0/Recipe.html>`_.
-This is your responsability to fill all the images needed for the Sets,
+This is your responsibility to fill all the images needed for the Sets,
 depending of your target. However, Kivy use SDL, and as soon as the application
-starts the SDL main, the launch image will disapear. To prevent that, you need
+starts the SDL main, the launch image will disappear. To prevent that, you need
 to have 2 files named `Default.png` and `Default-Landscape.png`, and put them
 in the `Resources` folder in Xcode (not in your application folder)
 

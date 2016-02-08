@@ -1,5 +1,4 @@
-'''
-Label
+'''Label
 =====
 
 The :class:`Label` widget is for rendering text. It supports ascii and unicode
@@ -16,6 +15,68 @@ strings::
 
     # size
     l = Label(text='Hello world', font_size='20sp')
+
+.. _kivy-uix-label-sizing-and-text-content:
+
+Sizing and text content
+---------------------------
+
+By default, the size of :class:`Label` is not affected by :attr:`~Label.text`
+content and the text is not affected by the size. In order to control
+sizing, you must specify :attr:`~Label.text_size` to constrain the text
+and/or bind :attr:`~Label.size` to :attr:`~Label.texture_size` to grow with
+the text.
+
+For example, this label's size will be set to the text content
+(plus :attr:`~Label.padding`):
+
+.. code-block:: python
+
+    Label:
+        size: self.texture_size
+
+This label's text will wrap at the specified width and be clipped to the height:
+
+.. code-block:: python
+
+    Label:
+        text_size: cm(6), cm(4)
+
+.. note:: The :attr:`~Label.shorten` and :attr:`~Label.max_lines` attributes
+ control how overflowing text behaves.
+
+Combine these concepts to create a Label that can grow vertically but wraps the
+text at a certain width:
+
+.. code-block:: python
+
+    Label:
+        text_size: root.width, None
+        size: self.texture_size
+
+Text alignment and wrapping
+---------------------------
+
+The :class:`Label` has :attr:`~Label.halign` and :attr:`~Label.valign`
+properties to control the alignment of its text. However, by default the text
+image (:attr:`~Label.texture`) is only just large enough to contain the
+characters and is positioned in the center of the Label. The valign property
+will have no effect and halign will only have an effect if your text has
+newlines; a single line of text will appear to be centered even though halign is
+set to left (by default).
+
+In order for the alignment properties to take effect, set the
+:attr:`~Label.text_size`, which specifies the size of the bounding box within
+which text is aligned. For instance, the following code binds this size to the
+size of the Label, so text will be aligned within the widget bounds. This
+will also automatically wrap the text of the Label to remain within this area.
+
+.. code-block:: python
+
+    Label:
+        text_size: self.size
+        halign: 'right'
+        valign: 'middle'
 
 Markup text
 -----------
@@ -73,7 +134,7 @@ Then you can write::
 
     "[size=24]Hello &bl;World&bt;[/size]"
 
-Interactive Zone in Text
+Interactive zone in text
 ------------------------
 
 .. versionadded:: 1.1.0
@@ -95,6 +156,24 @@ For prettier rendering, you could add a color for the reference. Replace the
 ``text=`` in the previous example with::
 
     'Hello [ref=world][color=0000ff]World[/color][/ref]'
+
+Catering for Unicode languages
+------------------------------
+
+The font kivy uses does not contain all the characters required for displaying
+all languages. When you use the built-in widgets, this results in a block being
+drawn where you expect a character.
+
+If you want to display such characters, you can chose a font that supports them
+and deploy it universally via kv:
+
+.. code-block:: kv
+
+    <Label>:
+        -font_name: '/<path>/<to>/<font>'
+
+Note that this needs to be done before your widgets are loaded as kv rules are
+only applied at load time.
 
 Usage example
 -------------
@@ -188,16 +267,26 @@ class Label(Widget):
 
         # bind all the property for recreating the texture
         d = Label._font_properties
-        dkw = {}
+        fbind = self.fbind
+        update = self._trigger_texture_update
         for x in d:
-            dkw[x] = partial(self._trigger_texture_update, x)
-        self.bind(**dkw)
+            fbind(x, update, x)
 
         self._label = None
         self._create_label()
 
+        fbind('markup', self._bind_for_markup)
+        if self.markup:
+            self._bind_for_markup(self, self.markup)
+
         # force the texture creation
         self._trigger_texture()
+
+    def _bind_for_markup(self, inst, markup):
+        if markup:
+            self.fbind('color', self._trigger_texture_update, 'color')
+        else:
+            self.funbind('color', self._trigger_texture_update, 'color')
 
     def _create_label(self):
         # create the core label class according to markup value
@@ -248,7 +337,7 @@ class Label(Widget):
                 self.anchors, self._label._anchors = {}, {}
         else:
             if mrkup:
-                text = self._label.text
+                text = self.text
                 # we must strip here, otherwise, if the last line is empty,
                 # markup will retain the last empty line since it only strips
                 # line by line within markup
@@ -345,7 +434,7 @@ class Label(Widget):
     defaults to (None, None), meaning no size restriction by default.
     '''
 
-    font_name = StringProperty('DroidSans')
+    font_name = StringProperty('Roboto')
     '''Filename of the font to use. The path can be absolute or relative.
     Relative paths are resolved by the :func:`~kivy.resources.resource_find`
     function.
@@ -364,7 +453,7 @@ class Label(Widget):
         .. |unicodechar| image:: images/unicode-char.png
 
     :attr:`font_name` is a :class:`~kivy.properties.StringProperty` and
-    defaults to 'DroidSans'.
+    defaults to 'Roboto'.
     '''
 
     font_size = NumericProperty('15sp')

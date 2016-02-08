@@ -11,7 +11,7 @@ processing for creating an atlas from a set of individual PNG files. The
 command line section requires the Pillow library, or the defunct Python Imaging
 Library (PIL), to be installed.
 
-An Atlas is composed of files:
+An Atlas is composed of 2 or more files:
     - a json file (.atlas) that contains the image file names and texture
       locations of the atlas.
     - one or multiple image files containing textures referenced by the .atlas
@@ -100,7 +100,7 @@ As you can see, we get 2 new files: ``myatlas.atlas`` and ``myatlas-0.png``.
 How to use an Atlas
 -------------------
 
-Usually, you would use the atlas as follows::
+Usually, you would specify the images by supplying the path::
 
     a = Button(background_normal='images/button.png',
                background_down='images/button_down.png')
@@ -109,12 +109,13 @@ In our previous example, we have created the atlas containing both images and
 put them in ``images/myatlas.atlas``. You can use url notation to reference
 them::
 
+    a = Button(background_normal='atlas://images/myatlas/button',
+               background_down='atlas://images/myatlas/button_down')
+
+In other words, the path to the images is replaced by::
+
     atlas://path/to/myatlas/id
     # will search for the ``path/to/myatlas.atlas`` and get the image ``id``
-
-In our case, it would be::
-
-    atlas://images/myatlas/button
 
 .. note::
 
@@ -140,7 +141,7 @@ import json
 from os.path import basename, dirname, join, splitext
 from kivy.event import EventDispatcher
 from kivy.logger import Logger
-from kivy.properties import AliasProperty, DictProperty
+from kivy.properties import AliasProperty, DictProperty, ListProperty
 import os
 
 
@@ -150,6 +151,15 @@ CoreImage = None
 
 class Atlas(EventDispatcher):
     '''Manage texture atlas. See module documentation for more information.
+    '''
+
+    original_textures = ListProperty([])
+    '''List of original atlas textures (which contain the :attr:`textures`).
+
+    :attr:`original_textures` is a :class:`~kivy.properties.ListProperty` and
+    defaults to [].
+
+    .. versionadded:: 1.9.1
     '''
 
     textures = DictProperty({})
@@ -201,12 +211,14 @@ class Atlas(EventDispatcher):
 
             # load the image
             ci = CoreImage(subfilename)
+            atlas_texture = ci.texture
+            self.original_textures.append(atlas_texture)
 
             # for all the uid, load the image, get the region, and put
             # it in our dict.
             for meta_id, meta_coords in ids.items():
                 x, y, w, h = meta_coords
-                textures[meta_id] = ci.texture.get_region(*meta_coords)
+                textures[meta_id] = atlas_texture.get_region(*meta_coords)
 
         self.textures = textures
 
@@ -259,7 +271,7 @@ class Atlas(EventDispatcher):
             raise
 
         if isinstance(size, (tuple, list)):
-            size_w, size_h = map(int, size)
+            size_w, size_h = list(map(int, size))
         else:
             size_w = size_h = int(size)
 
@@ -420,7 +432,7 @@ if __name__ == '__main__':
     outname = argv[0]
     try:
         if 'x' in argv[1]:
-            size = map(int, argv[1].split('x', 1))
+            size = list(map(int, argv[1].split('x', 1)))
         else:
             size = int(argv[1])
     except ValueError:

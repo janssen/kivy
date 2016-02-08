@@ -29,10 +29,15 @@
 #			include "common_subset.h"
 #		else
 #			include <GLES2/gl2.h>
+#			include <GLES2/gl2ext.h>
+#		endif
+#		ifndef GL_DEPTH24_STENCIL8
+#			define GL_DEPTH24_STENCIL8                      GL_DEPTH24_STENCIL8_OES
 #		endif
 #	else
 #		ifdef __APPLE__
 #			include <OpenGL/gl.h>
+#			include <OpenGL/glext.h>
 #		else
 #			define GL_GLEXT_PROTOTYPES
 #			include <GL/gl.h>
@@ -52,7 +57,7 @@
 #	define glClearDepthf glClearDepth
 
 // C redirection to prevent warning of undeclared symbol
-// (theses functions are not existing in GLES2, but if we are using GLES2
+// (these functions are not existing in GLES2, but if we are using GLES2
 // headers with GL library, we need to declare them.)
 GL_APICALL void GL_APIENTRY glDepthRange( GLclampf near_val, GLclampf far_val );
 GL_APICALL void GL_APIENTRY glClearDepth( GLclampf depth );
@@ -124,4 +129,3 @@ void glew_dynamic_binding() {
 
 #endif /* __GLEW_DYNAMIC_BINDING */
 #endif /* __USE_GLEW */
-

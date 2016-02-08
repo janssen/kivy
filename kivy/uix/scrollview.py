@@ -119,10 +119,11 @@ from kivy.config import Config
 from kivy.clock import Clock
 from kivy.factory import Factory
 from kivy.uix.stencilview import StencilView
-from kivy.metrics import sp
+from kivy.metrics import sp, dp
 from kivy.effects.dampedscroll import DampedScrollEffect
 from kivy.properties import NumericProperty, BooleanProperty, AliasProperty, \
     ObjectProperty, ListProperty, ReferenceListProperty, OptionProperty
+from kivy.uix.behaviors import FocusBehavior
 
 
 # When we are generating documentation, Config doesn't exist
@@ -460,19 +461,24 @@ class ScrollView(StencilView):
             self.effect_x = effect_cls(target_widget=self._viewport)
         if self.effect_y is None and effect_cls is not None:
             self.effect_y = effect_cls(target_widget=self._viewport)
-        self.bind(
-            width=self._update_effect_x_bounds,
-            height=self._update_effect_y_bounds,
-            viewport_size=self._update_effect_bounds,
-            _viewport=self._update_effect_widget,
-            scroll_x=self._trigger_update_from_scroll,
-            scroll_y=self._trigger_update_from_scroll,
-            pos=self._trigger_update_from_scroll,
-            size=self._trigger_update_from_scroll)
 
-        self._update_effect_widget()
-        self._update_effect_x_bounds()
-        self._update_effect_y_bounds()
+        trigger_update_from_scroll = self._trigger_update_from_scroll
+        update_effect_widget = self._update_effect_widget
+        update_effect_x_bounds = self._update_effect_x_bounds
+        update_effect_y_bounds = self._update_effect_y_bounds
+        fbind = self.fbind
+        fbind('width', update_effect_x_bounds)
+        fbind('height', update_effect_y_bounds)
+        fbind('viewport_size', self._update_effect_bounds)
+        fbind('_viewport', update_effect_widget)
+        fbind('scroll_x', trigger_update_from_scroll)
+        fbind('scroll_y', trigger_update_from_scroll)
+        fbind('pos', trigger_update_from_scroll)
+        fbind('size', trigger_update_from_scroll)
+
+        update_effect_widget()
+        update_effect_x_bounds()
+        update_effect_y_bounds()
 
     def on_effect_x(self, instance, value):
         if value:
@@ -550,10 +556,10 @@ class ScrollView(StencilView):
         tx, ty = self.g_translate.xy
         return x + tx, y + ty
 
-    def _apply_transform(self, m):
+    def _apply_transform(self, m, pos=None):
         tx, ty = self.g_translate.xy
         m.translate(tx, ty, 0)
-        return super(ScrollView, self)._apply_transform(m)
+        return super(ScrollView, self)._apply_transform(m, (0, 0))
 
     def simulate_touch_down(self, touch):
         # at this point the touch is in parent coords
@@ -646,6 +652,7 @@ class ScrollView(StencilView):
         # this touch.
         self._touch = touch
         uid = self._get_uid()
+        FocusBehavior.ignored_touch.append(touch)
 
         ud[uid] = {
             'mode': 'unknown',
@@ -743,19 +750,8 @@ class ScrollView(StencilView):
         if mode == 'unknown':
             ud['dx'] += abs(touch.dx)
             ud['dy'] += abs(touch.dy)
-            if ud['dx'] > self.scroll_distance:
-                if not self.do_scroll_x:
-                    # touch is in parent, but _change expects window coords
-                    touch.push()
-                    touch.apply_transform_2d(self.to_local)
-                    touch.apply_transform_2d(self.to_window)
-                    self._change_touch_mode()
-                    touch.pop()
-                    return
-                mode = 'scroll'
-
-            if ud['dy'] > self.scroll_distance:
-                if not self.do_scroll_y:
+            if ud['dx'] or ud['dy'] > self.scroll_distance:
+                if not self.do_scroll_x and not self.do_scroll_y:
                     # touch is in parent, but _change expects window coords
                     touch.push()
                     touch.apply_transform_2d(self.to_local)
@@ -829,6 +825,50 @@ class ScrollView(StencilView):
 
         return self._get_uid() in touch.ud
 
+    def scroll_to(self, widget, padding=10, animate=True):
+        '''Scrolls the viewport to ensure that the given widget is visible,
+        optionally with padding and animation. If animate is True (the
+        default), then the default animation parameters will be used.
+        Otherwise, it should be a dict containing arguments to pass to
+        :class:`~kivy.animation.Animation` constructor.
+
+        .. versionadded:: 1.9.1
+        '''
+        if not self.parent:
+            return
+
+        if isinstance(padding, (int, float)):
+            padding = (padding, padding)
+
+        pos = self.parent.to_widget(*widget.to_window(*widget.pos))
+        cor = self.parent.to_widget(*widget.to_window(widget.right,
+                                                      widget.top))
+
+        dx = dy = 0
+
+        if pos[1] < self.y:
+            dy = self.y - pos[1] + dp(padding[1])
+        elif cor[1] > self.top:
+            dy = self.top - cor[1] - dp(padding[1])
+
+        if pos[0] < self.x:
+            dx = self.x - pos[0] + dp(padding[0])
+        elif cor[0] > self.right:
+            dx = self.right - cor[0] - dp(padding[0])
+
+        dsx, dsy = self.convert_distance_to_scroll(dx, dy)
+        sxp = min(1, max(0, self.scroll_x - dsx))
+        syp = min(1, max(0, self.scroll_y - dsy))
+
+        if animate:
+            if animate is True:
+                animate = {'d': 0.2, 't': 'out_quad'}
+            Animation.stop_all(self, 'scroll_x', 'scroll_y')
+            Animation(scroll_x=sxp, scroll_y=syp, **animate).start(self)
+        else:
+            self.scroll_x = sxp
+            self.scroll_y = syp
+
     def convert_distance_to_scroll(self, dx, dy):
         '''Convert a distance in pixels to a scroll distance, depending on the
         content size and the scrollview size.
@@ -889,15 +929,15 @@ class ScrollView(StencilView):
         # New in 1.2.0, show bar when scrolling happens and (changed in 1.9.0)
         # fade to bar_inactive_color when no scroll is happening.
         Clock.unschedule(self._bind_inactive_bar_color)
-        self.unbind(bar_inactive_color=self._change_bar_color)
+        self.funbind('bar_inactive_color', self._change_bar_color)
         Animation.stop_all(self, '_bar_color')
-        self.bind(bar_color=self._change_bar_color)
+        self.fbind('bar_color', self._change_bar_color)
         self._bar_color = self.bar_color
         Clock.schedule_once(self._bind_inactive_bar_color, .5)
 
     def _bind_inactive_bar_color(self, *l):
-        self.unbind(bar_color=self._change_bar_color)
-        self.bind(bar_inactive_color=self._change_bar_color)
+        self.funbind('bar_color', self._change_bar_color)
+        self.fbind('bar_inactive_color', self._change_bar_color)
         Animation(
             _bar_color=self.bar_inactive_color, d=.5, t='out_quart').start(self)
 

@@ -42,6 +42,11 @@ of the parent's height, do::
     widget.size_hint = (None, 0.3)
     widget.width = 250
 
+Being :class:`Kivy properties <kivy.properties>`, these can also be set via
+constructor arguments::
+
+    widget = Widget(size_hint=(None, 0.3), width=250)
+
 .. versionchanged:: 1.4.1
     The `reposition_child` internal method (made public by mistake) has
     been removed.
@@ -61,7 +66,8 @@ class Layout(Widget):
 
     def __init__(self, **kwargs):
         if self.__class__ == Layout:
-            raise Exception('The Layout class cannot be used.')
+            raise Exception('The Layout class is abstract and \
+                cannot be used directly.')
         self._trigger_layout = Clock.create_trigger(self.do_layout, -1)
         super(Layout, self).__init__(**kwargs)
 
@@ -72,7 +78,7 @@ class Layout(Widget):
 
         .. versionadded:: 1.0.8
         '''
-        pass
+        raise NotImplementedError('Must be implemented in subclasses.')
 
     def add_widget(self, widget, index=0):
         widget.bind(
