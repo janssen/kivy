@@ -56,10 +56,10 @@ cdef class _WindowSDL2Storage:
 
     def setup_window(self, x, y, width, height, borderless, fullscreen,
                      resizable, state):
-        self.win_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI
+        self.win_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
 
         IF USE_IOS:
-            self.win_flags |= SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_FULLSCREEN_DESKTOP
+            self.win_flags |= SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_ALLOW_HIGHDPI
         ELSE:
             if resizable:
                 self.win_flags |= SDL_WINDOW_RESIZABLE
@@ -143,9 +143,19 @@ cdef class _WindowSDL2Storage:
         SDL_SetEventFilter(_event_filter, <void *>self)
 
         SDL_EventState(SDL_DROPFILE, SDL_ENABLE)
+
         cdef int w, h
         SDL_GetWindowSize(self.win, &w, &h)
-        return w, h
+        cdef SDL_DisplayMode mode
+        cdef int draw_w, draw_h
+        SDL_GetWindowDisplayMode(self.win, &mode)
+        SDL_GL_GetDrawableSize(self.win, &draw_w, &draw_h)
+        mode.w = draw_w
+        mode.h = draw_h
+        SDL_SetWindowDisplayMode(self.win, &mode)
+        SDL_GetWindowDisplayMode(self.win, &mode)
+        print 'w', w, 'h', h, 'mode.w', mode.w, 'mode.h', mode.h
+        return mode.w, mode.h
 
     def _set_cursor_state(self, value):
         SDL_ShowCursor(value)
