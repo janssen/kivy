@@ -146,16 +146,7 @@ cdef class _WindowSDL2Storage:
 
         cdef int w, h
         SDL_GetWindowSize(self.win, &w, &h)
-        cdef SDL_DisplayMode mode
-        cdef int draw_w, draw_h
-        SDL_GetWindowDisplayMode(self.win, &mode)
-        SDL_GL_GetDrawableSize(self.win, &draw_w, &draw_h)
-        mode.w = draw_w
-        mode.h = draw_h
-        SDL_SetWindowDisplayMode(self.win, &mode)
-        SDL_GetWindowDisplayMode(self.win, &mode)
-        print 'w', w, 'h', h, 'mode.w', mode.w, 'mode.h', mode.h
-        return mode.w, mode.h
+        return w, h
 
     def _set_cursor_state(self, value):
         SDL_ShowCursor(value)
