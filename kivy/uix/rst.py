@@ -820,7 +820,8 @@ class _ToctreeVisitor(nodes.NodeVisitor):
         if cls is nodes.section:
             self.pop()
         elif cls is nodes.title:
-            self.current['title'] = self.text
+            if hasattr(self.current, "title"):
+                self.current['title'] = self.text
 
 
 class _Visitor(nodes.NodeVisitor):
