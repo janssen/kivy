@@ -556,7 +556,7 @@ will react to the *on_touch_down* event.:
 
 We can see that the size and size_hint attribute are exactly the same.
 More than that, the callback in on_touch_down and the image are changing.
-Theses can be the variable part of the template that we can put into a context.
+These can be the variable part of the template that we can put into a context.
 Let's try to create a template for the Image:
 
 .. code-block:: kv
@@ -647,6 +647,83 @@ and in my.kv:
 
 MyWidget will now have a Color and Rectangle instruction in its canvas
 without any of the instructions inherited from the Label.
+
+Redefining a widget's property style
+------------------------------------
+
+Similar to :ref:`Redefining a widget's style`, sometimes we would like to
+inherit from a widget, keep all its KV defined styles, except for the style
+applied to a specific property. For example, we would
+like to inherit from a :class:`~kivy.uix.button.Button`, but we would also
+like to set our own `state_image`, rather then relying on the
+`background_normal` and `background_down` values. We can achieve this by
+prepending a dash (-) before the `state_image` property name in the .kv style
+definition.
+
+In myapp.py:
+
+.. code-block:: python
+
+    class MyWidget(Button):
+
+        new_background = StringProperty('my_background.png')
+
+and in my.kv:
+
+.. code-block:: kv
+
+    <MyWidget>:
+        -state_image: self.new_background
+
+MyWidget will now have a `state_image` background set only by `new_background`,
+and not by any previous styles that may have set `state_image`.
+
+.. note::
+
+    Although the previous rules are cleared, they are still applied during
+    widget construction and are only removed when the new rule with the dash
+    is reached. This means that initially, previous rules could be used to set
+    the property.
+
+Order of kwargs and KV rule application
+---------------------------------------
+
+Properties can be initialized in KV as well as in python. For example, in KV:
+
+.. code-block:: kv
+
+    <MyRule@Widget>:
+        text: 'Hello'
+        ramp: 45.
+        order: self.x + 10
+
+Then `MyRule()` would initialize all three kivy properties to
+the given KV values. Separately in python, if the properties already exist as
+kivy properties one can do for example `MyRule(line='Bye', side=55)`.
+
+However, what will be the final values of the properties when
+`MyRule(text='Bye', order=55)` is executed? The quick rule is that python
+initialization is stronger than KV initialization only for constant rules.
+
+Specifically, the `kwargs` provided to the python initializer are always
+applied first. So in the above example, `text` is set to
+`'Bye'` and `order` is set to `55`. Then, all the KV rules are applied, except
+those constant rules that overwrite a python initializer provided value.
+
+That is, the KV rules that do not creates bindings such as `text: 'Hello'`
+and `ramp: 45.`, if a value for that property has been provided in python, then
+that rule will not be applied.
+
+So in the `MyRule(text='Bye', order=55)` example, `text` will be `'Bye'`,
+`ramp` will be `45.`, and `order`, which creates a binding, will first be set
+to `55`, but then when KV rules are applied will end up being whatever
+`self.x + 10` is.
+
+.. versionchanged:: 1.9.1
+
+    Before, KV rules always overwrote the python values, now, python values
+    are not overwritten by constant rules.
+
 
 Lang Directives
 ---------------
@@ -820,6 +897,7 @@ lang_str = re.compile('([\'"][^\'"]*[\'"])')
 lang_key = re.compile('([a-zA-Z_]+)')
 lang_keyvalue = re.compile('([a-zA-Z_][a-zA-Z0-9_.]*\.[a-zA-Z0-9_.]+)')
 lang_tr = re.compile('(_\()')
+lang_cls_split_pat = re.compile(', *')
 
 # class types to check with isinstance
 if PY2:
@@ -829,7 +907,7 @@ else:
 
 # all the widget handlers, used to correctly unbind all the callbacks then the
 # widget is deleted
-_handlers = defaultdict(list)
+_handlers = defaultdict(partial(defaultdict, list))
 
 
 class ProxyApp(object):
@@ -932,9 +1010,9 @@ class ParserRuleProperty(object):
     '''
 
     __slots__ = ('ctx', 'line', 'name', 'value', 'co_value',
-                 'watched_keys', 'mode', 'count')
+                 'watched_keys', 'mode', 'count', 'ignore_prev')
 
-    def __init__(self, ctx, line, name, value):
+    def __init__(self, ctx, line, name, value, ignore_prev=False):
         super(ParserRuleProperty, self).__init__()
         #: Associated parser
         self.ctx = ctx
@@ -952,6 +1030,8 @@ class ParserRuleProperty(object):
         self.watched_keys = None
         #: Stats
         self.count = 0
+        #: whether previous rules targeting name should be cleared
+        self.ignore_prev = ignore_prev
 
     def precompile(self):
         name = self.name
@@ -1106,8 +1186,7 @@ class ParserRule(object):
             self.avoid_previous_rules = True
             name = name[1:]
 
-        rules = name.split(',')
-        for rule in rules:
+        for rule in re.split(lang_cls_split_pat, name):
             crule = None
 
             if not len(rule):
@@ -1379,7 +1458,14 @@ class Parser(object):
                 # It's a class, add to the current object as a children
                 current_property = None
                 name = x[0]
-                if ord(name[0]) in Parser.CLASS_RANGE or name[0] == '+':
+                ignore_prev = name[0] == '-'
+                if ignore_prev:
+                    name = name[1:]
+
+                if ord(name[0]) in Parser.CLASS_RANGE:
+                    if ignore_prev:
+                        raise ParserException(
+                            self, ln, 'clear previous, `-`, not allowed here')
                     _objects, _lines = self.parse_level(
                         level + 1, lines[i:], spaces)
                     current_object.children = _objects
@@ -1404,14 +1490,20 @@ class Parser(object):
                                 'Invalid id, cannot be "self" or "root"')
                         current_object.id = value
                     elif len(value):
-                        rule = ParserRuleProperty(self, ln, name, value)
+                        rule = ParserRuleProperty(
+                            self, ln, name, value, ignore_prev)
                         if name[:3] == 'on_':
                             current_object.handlers.append(rule)
                         else:
+                            ignore_prev = False
                             current_object.properties[name] = rule
                     else:
                         current_property = name
                         current_propobject = None
+
+                    if ignore_prev:  # it wasn't consumed
+                        raise ParserException(
+                            self, ln, 'clear previous, `-`, not allowed here')
 
             # Two more levels?
             elif count == indent + 2 * spaces:
@@ -1513,7 +1605,7 @@ def update_intermediates(base, keys, bound, s, fn, args, instance, value):
         `bound`
             A list 4-tuples, each tuple being (widget, attr, callback, uid)
             representing callback functions bound to the attributed `attr`
-            of `widget`. `uid` is returned by `fast_bind` when binding.
+            of `widget`. `uid` is returned by `fbind` when binding.
             The callback may be None, in which case the attr
             was not bound, but is there to be able to walk the attr tree.
             E.g. in the example above, if `b` was not an eventdispatcher,
@@ -1553,10 +1645,10 @@ def update_intermediates(base, keys, bound, s, fn, args, instance, value):
         if isinstance(f, (EventDispatcher, Observable)):
             prop = f.property(val, True)
             if prop is not None and getattr(prop, 'rebind', False):
-                # fast_bind should not dispatch, otherwise
+                # fbind should not dispatch, otherwise
                 # update_intermediates might be called in the middle
                 # here messing things up
-                uid = f.fast_bind(
+                uid = f.fbind(
                     val, update_intermediates, base, keys, bound, s, fn, args)
                 append([f.proxy_ref, val, update_intermediates, uid])
             else:
@@ -1572,7 +1664,7 @@ def update_intermediates(base, keys, bound, s, fn, args, instance, value):
     # for the last attr we bind directly to the setting function,
     # because that attr sets the value of the rule.
     if isinstance(f, (EventDispatcher, Observable)):
-        uid = f.fast_bind(keys[-1], fn, args)
+        uid = f.fbind(keys[-1], fn, args)
         if uid:
             append([f.proxy_ref, keys[-1], fn, uid])
     # when we rebind we have to update the
@@ -1586,7 +1678,8 @@ def create_handler(iself, element, key, value, rule, idmap, delayed=False):
     idmap = copy(idmap)
     idmap.update(global_idmap)
     idmap['self'] = iself.proxy_ref
-    handler_append = _handlers[iself.uid].append
+    bound_list = _handlers[iself.uid][key]
+    handler_append = bound_list.append
 
     # we need a hash for when delayed, so we don't execute duplicate canvas
     # callbacks from the same handler during a sync op
@@ -1616,10 +1709,10 @@ def create_handler(iself, element, key, value, rule, idmap, delayed=False):
                 if isinstance(f, (EventDispatcher, Observable)):
                     prop = f.property(val, True)
                     if prop is not None and getattr(prop, 'rebind', False):
-                        # fast_bind should not dispatch, otherwise
+                        # fbind should not dispatch, otherwise
                         # update_intermediates might be called in the middle
                         # here messing things up
-                        uid = f.fast_bind(
+                        uid = f.fbind(
                             val, update_intermediates, base, keys, bound, k,
                             fn, args)
                         append([f.proxy_ref, val, update_intermediates, uid])
@@ -1638,7 +1731,7 @@ def create_handler(iself, element, key, value, rule, idmap, delayed=False):
             # for the last attr we bind directly to the setting
             # function, because that attr sets the value of the rule.
             if isinstance(f, (EventDispatcher, Observable)):
-                uid = f.fast_bind(keys[-1], fn, args)  # f is not None
+                uid = f.fbind(keys[-1], fn, args)  # f is not None
                 if uid:
                     append([f.proxy_ref, keys[-1], fn, uid])
                     was_bound = True
@@ -1646,7 +1739,7 @@ def create_handler(iself, element, key, value, rule, idmap, delayed=False):
                 handler_append(bound)
 
     try:
-        return eval(value, idmap)
+        return eval(value, idmap), bound_list
     except Exception as e:
         tb = sys.exc_info()[2]
         raise BuilderException(rule.ctx, rule.line,
@@ -1860,8 +1953,13 @@ class BuilderBase(object):
         self._apply_rule(widget, rule, rule, template_ctx=proxy_ctx)
         return widget
 
-    def apply(self, widget):
+    def apply(self, widget, ignored_consts=set()):
         '''Search all the rules that match the widget and apply them.
+
+        `ignored_consts` is a set or list type whose elements are property
+        names for which constant KV rules (i.e. those that don't create
+        bindings) of that widget will not be applied. This allows e.g. skipping
+        constant rules that overwrite a value initialized in python.
         '''
         rules = self.match(widget)
         if __debug__:
@@ -1869,12 +1967,13 @@ class BuilderBase(object):
         if not rules:
             return
         for rule in rules:
-            self._apply_rule(widget, rule, rule)
+            self._apply_rule(widget, rule, rule, ignored_consts=ignored_consts)
 
     def _clear_matchcache(self):
         BuilderBase._match_cache = {}
 
-    def _apply_rule(self, widget, rule, rootrule, template_ctx=None):
+    def _apply_rule(self, widget, rule, rootrule, template_ctx=None,
+                    ignored_consts=set()):
         # widget: the current instantiated widget
         # rule: the current rule
         # rootrule: the current root rule (for children of a rule)
@@ -1989,6 +2088,10 @@ class BuilderBase(object):
         if rule.properties:
             rctx['set'].append((widget.proxy_ref,
                                 list(rule.properties.values())))
+            for key, crule in rule.properties.items():
+                # clear previously applied rules if asked
+                if crule.ignore_prev:
+                    Builder.unbind_property(widget, key)
         if rule.handlers:
             rctx['hdl'].append((widget.proxy_ref, rule.handlers))
 
@@ -2007,9 +2110,18 @@ class BuilderBase(object):
                     key = rule.name
                     value = rule.co_value
                     if type(value) is CodeType:
-                        value = create_handler(widget_set, widget_set, key,
-                                               value, rule, rctx['ids'])
-                    setattr(widget_set, key, value)
+                        value, bound = create_handler(
+                            widget_set, widget_set, key, value, rule,
+                            rctx['ids'])
+                        # if there's a rule
+                        if (widget_set != widget or bound or
+                            key not in ignored_consts):
+                            setattr(widget_set, key, value)
+                    else:
+                        if (widget_set != widget or
+                            key not in ignored_consts):
+                            setattr(widget_set, key, value)
+
         except Exception as e:
             if rule is not None:
                 tb = sys.exc_info()[2]
@@ -2031,7 +2143,7 @@ class BuilderBase(object):
                     idmap = copy(global_idmap)
                     idmap.update(rctx['ids'])
                     idmap['self'] = widget_set.proxy_ref
-                    if not widget_set.fast_bind(key, custom_callback, crule,
+                    if not widget_set.fbind(key, custom_callback, crule,
                                                 idmap):
                         raise AttributeError(key)
                     #hack for on_parent
@@ -2088,16 +2200,95 @@ class BuilderBase(object):
         _delayed_start = None
 
     def unbind_widget(self, uid):
-        '''(internal) Unbind all the handlers created by the rules of the
+        '''Unbind all the handlers created by the KV rules of the
         widget. The :attr:`kivy.uix.widget.Widget.uid` is passed here
-        instead of the widget itself, because we are using it in the
+        instead of the widget itself, because Builder is using it in the
         widget destructor.
+
+        This effectively clearls all the KV rules associated with this widget.
+        For example:
+
+    .. code-block:: python
+
+            >>> w = Builder.load_string(\'''
+            ... Widget:
+            ...     height: self.width / 2. if self.disabled else self.width
+            ...     x: self.y + 50
+            ... \''')
+            >>> w.size
+            [100, 100]
+            >>> w.pos
+            [50, 0]
+            >>> w.width = 500
+            >>> w.size
+            [500, 500]
+            >>> Builder.unbind_widget(w.uid)
+            >>> w.width = 222
+            >>> w.y = 500
+            >>> w.size
+            [222, 500]
+            >>> w.pos
+            [50, 500]
 
         .. versionadded:: 1.7.2
         '''
         if uid not in _handlers:
             return
-        for callbacks in _handlers[uid]:
+        for prop_callbacks in _handlers[uid].values():
+            for callbacks in prop_callbacks:
+                for f, k, fn, bound_uid in callbacks:
+                    if fn is None:  # it's not a kivy prop.
+                        continue
+                    try:
+                        f.unbind_uid(k, bound_uid)
+                    except ReferenceError:
+                        # proxy widget is already gone, that's cool :)
+                        pass
+        del _handlers[uid]
+
+    def unbind_property(self, widget, name):
+        '''Unbind the handlers created by all the rules of the widget that set
+        the name.
+
+        This effectively clears all the rules of widget that take the form::
+
+            name: rule
+
+        For example:
+
+        .. code-block:: python
+
+            >>> w = Builder.load_string(\'''
+            ... Widget:
+            ...     height: self.width / 2. if self.disabled else self.width
+            ...     x: self.y + 50
+            ... \''')
+            >>> w.size
+            [100, 100]
+            >>> w.pos
+            [50, 0]
+            >>> w.width = 500
+            >>> w.size
+            [500, 500]
+            >>> Builder.unbind_property(w, 'height')
+            >>> w.width = 222
+            >>> w.size
+            [222, 500]
+            >>> w.y = 500
+            >>> w.pos
+            [550, 500]
+
+        .. versionadded:: 1.9.1
+        '''
+        uid = widget.uid
+        if uid not in _handlers:
+            return
+
+        prop_handlers = _handlers[uid]
+        if name not in prop_handlers:
+            return
+
+        for callbacks in prop_handlers[name]:
             for f, k, fn, bound_uid in callbacks:
                 if fn is None:  # it's not a kivy prop.
                     continue
@@ -2106,7 +2297,9 @@ class BuilderBase(object):
                 except ReferenceError:
                     # proxy widget is already gone, that's cool :)
                     pass
-        del _handlers[uid]
+        del prop_handlers[name]
+        if not prop_handlers:
+            del _handlers[uid]
 
     def _build_canvas(self, canvas, widget, rule, rootrule):
         global Instruction
@@ -2128,7 +2321,7 @@ class BuilderBase(object):
                     key = prule.name
                     value = prule.co_value
                     if type(value) is CodeType:
-                        value = create_handler(
+                        value, _ = create_handler(
                             widget, instr.proxy_ref,
                             key, value, prule, idmap, True)
                     setattr(instr, key, value)

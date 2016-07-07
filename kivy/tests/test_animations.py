@@ -71,7 +71,10 @@ class AnimationTestCase(unittest.TestCase):
         anim = Animation(x=100)
         anim.start(widget.proxy_ref)
         del widget
-        self.sleep(1.)
+        try:
+            self.sleep(1.)
+        except ReferenceError:
+            pass
 
 
 class SequentialAnimationTestCase(unittest.TestCase):
@@ -96,3 +99,21 @@ class SequentialAnimationTestCase(unittest.TestCase):
         self.a.start(self.w)
         self.sleep(.5)
         Animation.stop_all(self.w, 'x')
+
+    def _test_on_progress(self, anim, widget, progress):
+        self._on_progress_called = True
+
+    def _test_on_complete(self, anim, widget):
+        self._on_complete_called = True
+
+    def test_events(self):
+        self._on_progress_called = False
+        self._on_complete_called = False
+        self.a.bind(on_progress=self._test_on_progress,
+                    on_complete=self._test_on_complete)
+        self.a.start(self.w)
+        self.sleep(.5)
+        self.assertTrue(self._on_progress_called)
+        self.sleep(2)
+        self.assertTrue(self._on_progress_called)
+        self.assertTrue(self._on_complete_called)

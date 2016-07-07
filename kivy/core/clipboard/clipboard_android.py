@@ -7,6 +7,7 @@ Android implementation of Clipboard provider, using Pyjnius.
 
 __all__ = ('ClipboardAndroid', )
 
+from kivy import Logger
 from kivy.core.clipboard import ClipboardBase
 from jnius import autoclass
 from android.runnable import run_on_ui_thread
@@ -65,7 +66,6 @@ class ClipboardAndroid(ClipboardBase):
                     ClipDescription.MIMETYPE_TEXT_PLAIN):
                 data = primary_clip.getItemAt(0).getText()
             else:
-                # TODO: non text data types Not yet implemented
                 data = ''
         return data
 

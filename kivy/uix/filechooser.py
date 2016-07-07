@@ -2,17 +2,60 @@
 FileChooser
 ===========
 
-.. versionadded:: 1.0.5
+The FileChooser module provides various classes for describing, displaying and
+browsing file systems.
 
-
-.. versionchanged:: 1.2.0
-    In the chooser template, the `controller` is not a direct reference anymore
-    but a weak-reference.
-    You must update all the notation `root.controller.xxx` to
-    `root.controller().xxx`.
-
-Simple example
+Simple widgets
 --------------
+
+There are two ready-to-use widgets that provide views of the file system. Each
+of these present the files and folders in a different style.
+
+The :class:`FileChooserListView` displays file entries as text items in a
+vertical list, where folders can be collapsed and expanded.
+
+.. image:: images/filechooser_list.png
+
+The :class:`FileChooserIconView` presents icons and text from left to right,
+wrappping them as required.
+
+.. image:: images/filechooser_icon.png
+
+They both provide for scrolling, selection and basic user interaction.
+Please refer to the :class:`FileChooserController` for details on supported
+events and properties.
+
+Widget composition
+------------------
+
+FileChooser classes adopt a
+`MVC <https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller>`_
+design. They are exposed so that you to extend and customize your file chooser
+according to your needs.
+
+The FileChooser classes can be categorized as follows:
+
+* Models are represented by concrete implementations of the
+  :class:`FileSystemAbstract` class, such as the :class:`FileSystemLocal`.
+
+* Views are represented by the :class:`FileChooserListLayout` and
+  :class:`FileChooserIconLayout` classes. These are used by the
+  :class:`FileChooserListView` and :class:`FileChooserIconView` widgets
+  respectively.
+
+* Controllers are represented by concrete implementations of the
+  :class:`FileChooserController`, namely the :class:`FileChooser`,
+  :class:`FileChooserIconView` and :class:`FileChooserListView` classes.
+
+This means you can define your own views or provide :class:`FileSystemAbstract`
+implementations for alternative file systems for use with these widgets.
+The :class:`FileChooser` can be used as a controller for handling multiple,
+synchronized views of the same path. By combining these elements, you can add
+your own views and file systems and have them easily interact with the existing
+components.
+
+Usage example
+-------------
 
 main.py
 
@@ -26,8 +69,15 @@ editor.kv
 .. include:: ../../examples/RST_Editor/editor.kv
     :literal:
 
+.. versionadded:: 1.0.5
+
+.. versionchanged:: 1.2.0
+
+    In the chooser template, the `controller` is no longer a direct reference
+    but a weak-reference. If you are upgrading, you should change the notation
+    `root.controller.xxx` to `root.controller().xxx`.
+
 '''
-from kivy.uix.screenmanager import ScreenManager, Screen
 
 __all__ = ('FileChooserListView', 'FileChooserIconView',
            'FileChooserListLayout', 'FileChooserIconLayout',
@@ -44,6 +94,8 @@ from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.utils import platform as core_platform
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import (
     StringProperty, ListProperty, BooleanProperty, ObjectProperty,
     NumericProperty, OptionProperty, AliasProperty)
@@ -79,7 +131,7 @@ def alphanumeric_folders_first(files, filesystem):
 
 class FileSystemAbstract(object):
     '''Class for implementing a File System view that can be used with the
-    :class:`FileChooser`.:attr:`~FileChooser.file_system`.
+    :class:`FileChooser <FileChooser>`.
 
     .. versionadded:: 1.8.0
     '''
@@ -106,7 +158,7 @@ class FileSystemAbstract(object):
 
 
 class FileSystemLocal(FileSystemAbstract):
-    '''Implementation of :class:`FileSystemAbstract` for local files
+    '''Implementation of :class:`FileSystemAbstract` for local files.
 
     .. versionadded:: 1.8.0
     '''
@@ -225,7 +277,7 @@ class FileChooserListLayout(FileChooserLayout):
 
     def __init__(self, **kwargs):
         super(FileChooserListLayout, self).__init__(**kwargs)
-        self.bind(on_entries_cleared=self.scroll_to_top)
+        self.fbind('on_entries_cleared', self.scroll_to_top)
 
     def scroll_to_top(self, *args):
         self.ids.scrollview.scroll_y = 1.0
@@ -242,18 +294,16 @@ class FileChooserIconLayout(FileChooserLayout):
 
     def __init__(self, **kwargs):
         super(FileChooserIconLayout, self).__init__(**kwargs)
-        self.bind(on_entries_cleared=self.scroll_to_top)
+        self.fbind('on_entries_cleared', self.scroll_to_top)
 
     def scroll_to_top(self, *args):
         self.ids.scrollview.scroll_y = 1.0
 
 
-class FileChooserController(FloatLayout):
+class FileChooserController(RelativeLayout):
     '''Base for implementing a FileChooser. Don't use this class directly, but
     prefer using an implementation such as the :class:`FileChooser`,
     :class:`FileChooserListView` or :class:`FileChooserIconView`.
-
-    .. versionchanged:: 1.9.0
 
     :Events:
         `on_entry_added`: entry, parent
@@ -262,8 +312,8 @@ class FileChooserController(FloatLayout):
             Fired when the the entries list is cleared, usually when the
             root is refreshed.
         `on_subentry_to_entry`: entry, parent
-            Fired when a sub-entry is added to an existing entry.
-            Fired when entries are removed from an entry, usually when
+            Fired when a sub-entry is added to an existing entry or
+            when entries are removed from an entry e.g. when
             a node is closed.
         `on_submit`: selection, touch
             Fired when a file has been selected with a double-tap.
@@ -281,22 +331,24 @@ class FileChooserController(FloatLayout):
 
     path = StringProperty(u'/')
     '''
-    :class:`~kivy.properties.StringProperty`, defaults to the current working
-    directory as a unicode string. It specifies the path on the filesystem that
-    this controller should refer to.
+    path is a :class:`~kivy.properties.StringProperty` and defaults to the
+    current working directory as a unicode string. It specifies the path on the
+    filesystem that this controller should refer to.
 
     .. warning::
 
         If a unicode path is specified, all the files returned will be in
-        unicode allowing the display of unicode files and paths. If a bytes
+        unicode, allowing the display of unicode files and paths. If a bytes
         path is specified, only files and paths with ascii names will be
         displayed properly: non-ascii filenames will be displayed and listed
         with questions marks (?) instead of their unicode characters.
     '''
 
     filters = ListProperty([])
-    ''':class:`~kivy.properties.ListProperty`, defaults to [], equal to '\*'.
-    Specifies the filters to be applied to the files in the directory.
+    '''
+    filters specifies the filters to be applied to the files in the directory.
+    filters is a :class:`~kivy.properties.ListProperty` and defaults to []. This
+    is equivalent to '\*' i.e. nothing is filtered.
 
     The filters are not reset when the path changes. You need to do that
     yourself if desired.
@@ -325,25 +377,24 @@ class FileChooserController(FloatLayout):
         indicate a match and False otherwise.
 
     .. versionchanged:: 1.4.0
-        If the filter is a callable (function or method), it will be called
-        with the path and the file name as arguments for each file in the
-        directory.
-        The callable should returns True to indicate a match and False
-        overwise.
+        Added the option to specify the filter as a callback.
     '''
 
     filter_dirs = BooleanProperty(False)
     '''
-    :class:`~kivy.properties.BooleanProperty`, defaults to False.
     Indicates whether filters should also apply to directories.
+    filter_dirs is a :class:`~kivy.properties.BooleanProperty` and defaults to
+    False.
     '''
 
     sort_func = ObjectProperty(alphanumeric_folders_first)
     '''
-    :class:`~kivy.properties.ObjectProperty`.
-    Provides a function to be called with a list of filenames, and the
-    filesystem implementation as the second argument.
-    Returns a list of filenames sorted for display in the view.
+    Provides a function to be called with a list of filenames as the first
+    argument and the filesystem implementation as the second argument. It
+    returns a list of filenames sorted for display in the view.
+
+    sort_func is an :class:`~kivy.properties.ObjectProperty` and defaults to a
+    function returning alphanumerically named folders first.
 
     .. versionchanged:: 1.8.0
 
@@ -353,33 +404,42 @@ class FileChooserController(FloatLayout):
 
     files = ListProperty([])
     '''
-    Read-only :class:`~kivy.properties.ListProperty`.
     The list of files in the directory specified by path after applying the
     filters.
+
+    files is a read-only :class:`~kivy.properties.ListProperty`.
     '''
 
     show_hidden = BooleanProperty(False)
     '''
-    :class:`~kivy.properties.BooleanProperty`, defaults to False.
     Determines whether hidden files and folders should be shown.
+
+    show_hidden is a :class:`~kivy.properties.BooleanProperty` and defaults to
+    False.
     '''
 
     selection = ListProperty([])
     '''
-    Read-only :class:`~kivy.properties.ListProperty`.
     Contains the list of files that are currently selected.
+
+    selection is a read-only :class:`~kivy.properties.ListProperty` and defaults
+    to [].
     '''
 
     multiselect = BooleanProperty(False)
     '''
-    :class:`~kivy.properties.BooleanProperty`, defaults to False.
     Determines whether the user is able to select multiple files or not.
+
+    multiselect is a :class:`~kivy.properties.BooleanProperty` and defaults to
+    False.
     '''
 
     dirselect = BooleanProperty(False)
     '''
-    :class:`~kivy.properties.BooleanProperty`, defaults to False.
     Determines whether directories are valid selections or not.
+
+    dirselect is a :class:`~kivy.properties.BooleanProperty` and defaults to
+    False.
 
     .. versionadded:: 1.1.0
     '''
@@ -391,14 +451,14 @@ class FileChooserController(FloatLayout):
     rootpath to /users/foo, the user will be unable to go to /users or to any
     other directory not starting with /users/foo.
 
-    .. versionadded:: 1.2.0
+    rootpath is a :class:`~kivy.properties.StringProperty` and defaults to None.
 
-    :class:`~kivy.properties.StringProperty`, defaults to None.
+    .. versionadded:: 1.2.0
 
     .. note::
 
-        Similar to :attr:`path`, if `rootpath` is specified, whether it's a
-        bytes or unicode string determines the type of the filenames and paths
+        Similarly to :attr:`path`, whether `rootpath` is specified as
+        bytes or a unicode string determines the type of the filenames and paths
         read.
     '''
 
@@ -406,25 +466,28 @@ class FileChooserController(FloatLayout):
     '''Class to use for displaying a progress indicator for filechooser
     loading.
 
-    .. versionadded:: 1.2.0
-
-    :class:`~kivy.properties.ObjectProperty`, defaults to
+    progress_cls is an :class:`~kivy.properties.ObjectProperty` and defaults to
     :class:`FileChooserProgress`.
+
+    .. versionadded:: 1.2.0
 
     .. versionchanged:: 1.8.0
 
-        If you set a string, the :class:`~kivy.factory.Factory` will be used to
-        resolve the class.
+        If set to a string, the :class:`~kivy.factory.Factory` will be used to
+        resolve the class name.
 
     '''
 
     file_encodings = ListProperty(['utf-8', 'latin1', 'cp1252'])
     '''Possible encodings for decoding a filename to unicode. In the case that
-    the user has a weird filename, undecodable without knowing it's
+    the user has a non-ascii filename, undecodable without knowing it's
     initial encoding, we have no other choice than to guess it.
 
     Please note that if you encounter an issue because of a missing encoding
     here, we'll be glad to add it to this list.
+
+    file_encodings is a :class:`~kivy.properties.ListProperty` and defaults to
+    ['utf-8', 'latin1', 'cp1252'].
 
     .. versionadded:: 1.3.0
 
@@ -432,19 +495,17 @@ class FileChooserController(FloatLayout):
        This property is no longer used as the filechooser no longer decodes
        the file names.
 
-    file_encodings is a :class:`~kivy.properties.ListProperty` and defaults to
-    ['utf-8', 'latin1', 'cp1252'],
     '''
 
     file_system = ObjectProperty(FileSystemLocal(),
                                  baseclass=FileSystemAbstract)
-    '''Implementation to access the file system. Must be an instance of
-    FileSystemAbstract.
+    '''The file system object used to access the file system. This should be a
+    subclass of :class:`FileSystemAbstract`.
+
+    file_system is an :class:`~kivy.properties.ObjectProperty` and defaults to
+    :class:`FileSystemLocal()`
 
     .. versionadded:: 1.8.0
-
-    :class:`~kivy.properties.ObjectProperty`, defaults to
-    :class:`FileSystemLocal()`
     '''
 
     __events__ = ('on_entry_added', 'on_entries_cleared',
@@ -455,14 +516,16 @@ class FileChooserController(FloatLayout):
         super(FileChooserController, self).__init__(**kwargs)
 
         self._items = []
-        self.bind(selection=self._update_item_selection)
+        fbind = self.fbind
+        fbind('selection', self._update_item_selection)
 
         self._previous_path = [self.path]
-        self.bind(path=self._save_previous_path)
-        self.bind(path=self._trigger_update,
-                  filters=self._trigger_update,
-                  rootpath=self._trigger_update)
-        self._trigger_update()
+        fbind('path', self._save_previous_path)
+        update = self._trigger_update
+        fbind('path', update)
+        fbind('filters', update)
+        fbind('rootpath', update)
+        update()
 
     def on_touch_down(self, touch):
         # don't respond to touchs outside self
@@ -475,7 +538,7 @@ class FileChooserController(FloatLayout):
     def on_touch_up(self, touch):
         # don't respond to touchs outside self
         if not self.collide_point(*touch.pos):
-            return True
+            return
         if self.disabled:
             return True
         return super(FileChooserController, self).on_touch_up(touch)
@@ -592,7 +655,7 @@ class FileChooserController(FloatLayout):
 
     def get_nice_size(self, fn):
         '''Pass the filepath. Returns the size in the best human readable
-        format or '' if it is a directory (Don't recursively calculate size.).
+        format or '' if it is a directory (Don't recursively calculate size).
         '''
         if self.file_system.is_dir(fn):
             return ''
@@ -802,7 +865,7 @@ class FileChooserController(FloatLayout):
 
 
 class FileChooserListView(FileChooserController):
-    '''Implementation of :class:`FileChooserController` using a list view.
+    '''Implementation of a :class:`FileChooserController` using a list view.
 
     .. versionadded:: 1.9.0
     '''
@@ -810,7 +873,7 @@ class FileChooserListView(FileChooserController):
 
 
 class FileChooserIconView(FileChooserController):
-    '''Implementation of :class:`FileChooserController` using an icon view.
+    '''Implementation of a :class:`FileChooserController` using an icon view.
 
     .. versionadded:: 1.9.0
     '''
@@ -818,8 +881,31 @@ class FileChooserIconView(FileChooserController):
 
 
 class FileChooser(FileChooserController):
-    '''Implementation of :class:`FileChooserController` which supports
+    '''Implementation of a :class:`FileChooserController` which supports
     switching between multiple, synced layout views.
+
+    The FileChooser can be used as follows:
+
+    .. code-block:: kv
+
+        BoxLayout:
+            orientation: 'vertical'
+
+            BoxLayout:
+                size_hint_y: None
+                height: sp(52)
+
+                Button:
+                    text: 'Icon View'
+                    on_press: fc.view_mode = 'icon'
+                Button:
+                    text: 'List View'
+                    on_press: fc.view_mode = 'list'
+
+            FileChooser:
+                id: fc
+                FileChooserIconLayout
+                FileChooserListLayout
 
     .. versionadded:: 1.9.0
     '''
@@ -828,7 +914,7 @@ class FileChooser(FileChooserController):
     '''
     Reference to the :class:`~kivy.uix.screenmanager.ScreenManager` instance.
 
-    :class:`~kivy.properties.ObjectProperty`
+    manager is an :class:`~kivy.properties.ObjectProperty`.
     '''
 
     _view_list = ListProperty()
@@ -840,7 +926,8 @@ class FileChooser(FileChooserController):
     '''
     List of views added to this FileChooser.
 
-    :class:`~kivy.properties.AliasProperty` of type :class:`list`.
+    view_list is an :class:`~kivy.properties.AliasProperty` of type
+    :class:`list`.
     '''
 
     _view_mode = StringProperty()
@@ -858,7 +945,8 @@ class FileChooser(FileChooserController):
     '''
     Current layout view mode.
 
-    :class:`~kivy.properties.AliasProperty` of type :class:`str`.
+    view_mode is an :class:`~kivy.properties.AliasProperty` of type
+    :class:`str`.
     '''
 
     @property
@@ -873,7 +961,7 @@ class FileChooser(FileChooserController):
 
         self.trigger_update_view = Clock.create_trigger(self.update_view)
 
-        self.bind(view_mode=self.trigger_update_view)
+        self.fbind('view_mode', self.trigger_update_view)
 
     def add_widget(self, widget, **kwargs):
         if widget is self._progress:
@@ -958,7 +1046,6 @@ class FileChooser(FileChooserController):
 
 if __name__ == '__main__':
     from kivy.app import App
-    from kivy.lang import Builder
     from pprint import pprint
     import textwrap
     import sys

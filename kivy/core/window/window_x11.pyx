@@ -24,6 +24,7 @@ cdef extern from "X11/Xutil.h":
     int ButtonPress
     int ButtonRelease
     int MotionNotify
+    int ConfigureNotify
 
     int ControlMask
     int ShiftMask
@@ -42,12 +43,18 @@ cdef extern from "X11/Xutil.h":
         int x, y
         unsigned int state
         unsigned int button
+        
+    ctypedef struct XConfigureEvent:
+        int type
+        int x, y
+        int width, height
 
     ctypedef union XEvent:
         int type
         XKeyEvent xkey
         XMotionEvent xmotion
         XButtonEvent xbutton
+        XConfigureEvent xconfigure
 
 cdef extern int x11_create_window(int width, int height, int x, int y, \
         int resizable, int fullscreen, int border, int above, int CWOR, char *title)
@@ -96,6 +103,10 @@ cdef int event_callback(XEvent *event):
         modifiers = get_modifiers_from_state(event.xmotion.state)
         _window_object.dispatch('on_mouse_move',
                 event.xmotion.x, event.xmotion.y, modifiers)
+                
+    elif event.type == ConfigureNotify:
+        if (event.xconfigure.width != _window_object.system_size[0]) or (event.xconfigure.height != _window_object.system_size[1]):
+            _window_object.dispatch('on_resize', event.xconfigure.width, event.xconfigure.height)
 
     # mouse motion
     elif event.type == ButtonPress or event.type == ButtonRelease:
@@ -108,6 +119,10 @@ cdef int event_callback(XEvent *event):
             btn = 'scrolldown'
         elif event.xbutton.button == 5:
             btn = 'scrollup'
+        elif event.xbutton.button == 6:
+            btn = 'scrollleft'
+        elif event.xbutton.button == 7:
+            btn = 'scrollright'
         modifiers = get_modifiers_from_state(event.xbutton.state)
         eventname = 'on_mouse_down'
         if event.type == ButtonRelease:

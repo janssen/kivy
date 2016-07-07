@@ -177,16 +177,21 @@ class DropDown(ScrollView):
             c = self.container = Builder.load_string(_grid_kv)
         else:
             c = None
-        kwargs.setdefault('do_scroll_x', False)
+        if 'do_scroll_x' not in kwargs:
+            self.do_scroll_x = False
         if 'size_hint' not in kwargs:
-            kwargs.setdefault('size_hint_x', None)
-            kwargs.setdefault('size_hint_y', None)
+            if 'size_hint_x' not in kwargs:
+                self.size_hint_x = None
+            if 'size_hint_y' not in kwargs:
+                self.size_hint_y = None
         super(DropDown, self).__init__(**kwargs)
         if c is not None:
             super(DropDown, self).add_widget(c)
             self.on_container(self, c)
-        Window.bind(on_key_down=self.on_key_down)
-        self.bind(size=self._reposition)
+        Window.bind(
+            on_key_down=self.on_key_down,
+            size=self._reposition)
+        self.fbind('size', self._reposition)
 
     def on_key_down(self, instance, key, scancode, codepoint, modifiers):
         if key == 27 and self.get_parent_window():
@@ -315,8 +320,10 @@ class DropDown(ScrollView):
         h_top = win.height - (wtop + self.height)
         if h_bottom > 0:
             self.top = wy
+            self.height = self.container.minimum_height
         elif h_top > 0:
             self.y = wtop
+            self.height = self.container.minimum_height
         else:
             # none of both top/bottom have enough place to display the
             # widget at the current size. Take the best side, and fit to

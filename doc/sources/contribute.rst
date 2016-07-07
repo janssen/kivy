@@ -90,7 +90,7 @@ We use git as our version control system for our code base. If you have never
 used git or a similar DVCS (or even any VCS) before, we strongly suggest you
 take a look at the great documentation that is available for git online.
 The `Git Community Book <http://book.git-scm.com/>`_ or the
-`Git Screencasts <http://gitcasts.com/>`_ are both great ways to learn git.
+`Git Videos <https://git-scm.com/videos>`_ are both great ways to learn git.
 Trust us when we say that git is a great tool. It may seem daunting at first,
 but after a while you'll (hopefully) love it as much as we do. Teaching you git,
 however, is well beyond the scope of this document.
@@ -264,7 +264,7 @@ Will result in:
         """
 
 
-When refering to other parts of the api use:
+When referring to other parts of the api use:
 
 - ``:mod:`~kivy.module``` to refer to a module
 - ``:class:`~kivy.module.Class``` to refer to a class
@@ -273,7 +273,7 @@ When refering to other parts of the api use:
   for a class and a method)
 
 Obviously replacing `module` `Class` and `method` with their real name, and
-using using '.' to separate modules refering to imbricated modules, e.g::
+using using '.' to separate modules referring to imbricated modules, e.g::
 
     :mod:`~kivy.uix.floatlayout`
     :class:`~kivy.uix.floatlayout.FloatLayout`

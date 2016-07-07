@@ -16,8 +16,8 @@ Core class for acquiring the camera and converting its input into a
 
 __all__ = ('CameraBase', 'Camera')
 
-import sys
 
+from kivy.utils import platform
 from kivy.event import EventDispatcher
 from kivy.logger import Logger
 from kivy.core import core_select_lib
@@ -45,7 +45,7 @@ class CameraBase(EventDispatcher):
         `on_load`
             Fired when the camera is loaded and the texture has become
             available.
-        `on_frame`
+        `on_texture`
             Fired each time the camera texture is updated.
     '''
 
@@ -135,12 +135,14 @@ class CameraBase(EventDispatcher):
 # Load the appropriate providers
 providers = ()
 
-if sys.platform == 'win32':
+if platform == 'win':
     providers += (('videocapture', 'camera_videocapture',
                    'CameraVideoCapture'), )
-elif sys.platform == 'darwin':
+elif platform == 'macosx':
     providers += (('avfoundation', 'camera_avfoundation',
                    'CameraAVFoundation'), )
+elif platform == 'android':
+    providers += (('android', 'camera_android', 'CameraAndroid'), )
 else:
     #providers += (('gi', 'camera_gi', 'CameraGi'), )
     providers += (('pygst', 'camera_pygst', 'CameraPyGst'), )

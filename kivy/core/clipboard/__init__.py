@@ -26,6 +26,7 @@ Usage example::
 
 __all__ = ('ClipboardBase', 'Clipboard')
 
+from kivy import Logger
 from kivy.core import core_select_lib
 from kivy.utils import platform
 from kivy.setupconfig import USE_SDL2
@@ -135,12 +136,13 @@ elif platform == 'linux':
     _clipboards.append(
         ('gtk3', 'clipboard_gtk3', 'ClipboardGtk3'))
     _clipboards.append(
+        ('xclip', 'clipboard_xclip', 'ClipboardXclip'))
+    _clipboards.append(
         ('xsel', 'clipboard_xsel', 'ClipboardXsel'))
 
 if USE_SDL2:
-    if platform != 'linux':
-        _clipboards.append(
-            ('sdl2', 'clipboard_sdl2', 'ClipboardSDL2'))
+    _clipboards.append(
+        ('sdl2', 'clipboard_sdl2', 'ClipboardSDL2'))
 else:
     _clipboards.append(
         ('pygame', 'clipboard_pygame', 'ClipboardPygame'))
@@ -149,4 +151,19 @@ _clipboards.append(
     ('dummy', 'clipboard_dummy', 'ClipboardDummy'))
 
 Clipboard = core_select_lib('clipboard', _clipboards, True)
+CutBuffer = None
 
+if platform == 'linux':
+    _cutbuffers = [
+        ('xclip', 'clipboard_xclip', 'ClipboardXclip'),
+        ('xsel', 'clipboard_xsel', 'ClipboardXsel'),
+    ]
+
+    if Clipboard.__class__.__name__ in (c[2] for c in _cutbuffers):
+        CutBuffer = Clipboard
+    else:
+        CutBuffer = core_select_lib('cutbuffer', _cutbuffers, True,
+                                    basemodule='clipboard')
+
+    if CutBuffer:
+        Logger.info('CutBuffer: cut buffer support enabled')
