@@ -1478,8 +1478,8 @@ cdef class SmoothLine(Line):
 
         self.batch.set_data(vertices, <int>vcount, indices, <int>icount)
 
-        #free(vertices)
-        #free(indices)
+        free(vertices)
+        free(indices)
 
 
     property overdraw_width:
