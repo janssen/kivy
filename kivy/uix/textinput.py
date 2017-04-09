@@ -2099,7 +2099,7 @@ class TextInput(FocusBehavior, Widget):
 
             while True:
                 try:
-                    label = Label(text=ntext[:label_len], **kw)
+                    label = Label(text=ntext[:label_len], color=self.foreground_color, **kw)
                     label.refresh()
                     if ld is not None and ld > 2:
                         ld = int(ld / 2)
@@ -2777,9 +2777,9 @@ class TextInput(FocusBehavior, Widget):
         lbl = text = None
         if value:
             lbl = MarkupLabel(
-                text=txt + "[b]{}[/b]".format(value), **kw)
+                text=txt + "[b]{}[/b]".format(value), color=self.foreground_color, **kw)
         else:
-            lbl = Label(**kw)
+            lbl = Label(color=self.foreground_color, **kw)
             text = txt
 
         lbl.refresh()
