@@ -142,6 +142,10 @@ cdef TTF_Font *_get_font(self):
     cdef _TTFContainer ttfc
     cdef char *error
     cdef str s_error
+    cdef float ddpi
+    cdef float hdpi
+    cdef float vdpi
+    cdef float scaling = 1.0
 
     # fast path
     fontid = self._get_font_id()
@@ -153,6 +157,9 @@ cdef TTF_Font *_get_font(self):
     if not TTF_WasInit():
         TTF_Init()
 
+    if SDL_GetDisplayDPI(0, &ddpi, &hdpi, &vdpi) == 0:
+        scaling = ddpi/72.0
+
     # try first the file if it's a filename
     fontname = self.options['font_name_r']
     bytes_fontname = <bytes>fontname.encode('utf-8')
@@ -160,7 +167,7 @@ cdef TTF_Font *_get_font(self):
     if len(ext) == 2:
         # try to open the fount if it has an extension
         fontobject = TTF_OpenFont(bytes_fontname,
-                                  int(self.options['font_size']))
+                                  int(scaling * self.options['font_size']))
     # fallback to search a system font
     if fontobject == NULL:
         s_error = (<bytes>SDL_GetError()).encode('utf-8')

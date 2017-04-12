@@ -73,7 +73,7 @@ class LabelBase(object):
 
     :Parameters:
         `font_size`: int, defaults to 12
-            Font size of the text
+            Font size of the text, in points (1/72 of an inch)
         `font_name`: str, defaults to DEFAULT_FONT
             Font name of the text
         `bold`: bool, defaults to False
