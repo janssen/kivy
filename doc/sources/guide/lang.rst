@@ -24,9 +24,9 @@ There are two ways to load Kv code into your application:
 - By name convention:
 
   Kivy looks for a Kv file with the same name as your App class in
-  lowercase,  minus "App" if it ends with 'App'. E.g::
+  lowercase,  minus "App" if it ends with 'App' e.g::
 
-    MyApp -> my.kv.
+    MyApp -> my.kv
 
   If this file defines a `Root Widget` it will be attached to the App's `root`
   attribute and used as the base of the application widget tree.
@@ -72,15 +72,15 @@ There are three keywords specific to Kv language:
 Special syntaxes
 ----------------
 
-There are two special syntax to define values for the whole Kv context:
+There are two special syntaxes to define values for the whole Kv context:
 
-To import something from python::
+To access python modules and classes from kv, ::
 
     #:import name x.y.z
     #:import isdir os.path.isdir
     #:import np numpy
 
-Is equivalent to::
+is equivalent to::
 
     from x.y import z as name
     from os.path import isdir
@@ -88,11 +88,11 @@ Is equivalent to::
 
 in python.
 
-To set a global value::
+To set a global value, ::
 
     #:set name value
 
-Is equivalent to::
+is equivalent to::
 
     name = value
 
@@ -158,8 +158,9 @@ To have your display updated when your data change, you can now have just:
         cols: len(root.data)
 
 .. note::
-    Widget names must start with upper case letters while property names with
-    lower case ones, following the `PEP8 Naming Conventions<https://www.python.org/dev/peps/pep-0008/#naming-conventions>`_
+    Widget names should start with upper case letters while property names
+    should start with lower case ones. Following the `PEP8 Naming Conventions
+    <https://www.python.org/dev/peps/pep-0008/#naming-conventions>`_
     is encouraged.
 
 Event Bindings
@@ -241,8 +242,11 @@ following:
             text: s_but.state
 
 An ``id`` is limited in scope to the rule it is declared in, so in the
-code above ``s_but`` can not be accessed outside the <MySecondWidget>
+code above ``s_but`` can not be accessed outside the ``<MySecondWidget>``
 rule.
+
+.. warning:: When assigning a value to ``id``, remember that the value isn't
+   a string. There are no quotes: good -> ``id: value``, bad -> ``id: 'value'``
 
 An ``id`` is a ``weakref`` to the widget and not the widget itself. As a
 consequence, storing the ``id`` is not sufficient to keep the widget from being
@@ -314,7 +318,7 @@ In myapp.py:
     ...
 
 `txt_inpt` is defined as a :class:`~kivy.properties.ObjectProperty` initialized
-to `None` inside the Class.::
+to `None` inside the Class. ::
 
     txt_inpt = ObjectProperty(None)
 
@@ -364,7 +368,7 @@ can also iterate over these widgets and access them dictionary style::
 .. Note::
 
     Although the `self.ids` method is very concise, it is generally regarded as
-    'best practise' to use the ObjectProperty. This creates a direct reference,
+    'best practice' to use the ObjectProperty. This creates a direct reference,
     provides faster access and is more explicit.
 
 Dynamic Classes
@@ -423,13 +427,13 @@ Consider the code below in my.kv:
 
     <MyFirstWidget>:
         Button:
-            on_press: self.text(txt_inpt.text)
+            on_press: root.text(txt_inpt.text)
         TextInput:
             id: txt_inpt
 
     <MySecondWidget>:
         Button:
-            on_press: self.text(txt_inpt.text)
+            on_press: root.text(txt_inpt.text)
         TextInput:
             id: txt_inpt
 
@@ -457,7 +461,7 @@ In my.kv:
 
     <MyFirstWidget,MySecondWidget>:
         Button:
-            on_press: self.text(txt_inpt.text)
+            on_press: root.text(txt_inpt.text)
         TextInput:
             id: txt_inpt
 
