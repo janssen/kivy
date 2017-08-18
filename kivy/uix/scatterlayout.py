@@ -80,11 +80,10 @@ class ScatterLayout(Scatter):
         self.content.clear_widgets()
 
 
-class ScatterPlaneLayout(ScatterPlane):
+class ScatterPlaneLayout(ScatterLayout):
     '''ScatterPlaneLayout class, see module documentation for more information.
 
-    Similar to ScatterLayout, but based on ScatterPlane - so the input is not
-    bounded.
+    Similar to ScatterLayout, but input is not bounded, like ScatterPlane.
 
     .. versionadded:: 1.9.0
     '''

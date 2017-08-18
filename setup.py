@@ -179,6 +179,7 @@ have_cython = False
 if platform in ('ios', 'android'):
     print('\nCython check avoided.')
 else:
+    import traceback
     try:
         # check for cython
         from Cython.Distutils import build_ext
@@ -197,6 +198,7 @@ else:
             print(cython_max)
             sleep(1)
     except ImportError:
+        print(traceback.format_exc())
         print('\nCython is missing, its required for compiling kivy !\n\n')
         raise
 
